@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级积分系统</title>
+    <style>
+        /* 引入国风字体 */
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap');
+
+        body {
+            font-family: 'ZCOOL QingKe HuangYou', cursive;
+            background-image: url('https://pic2.zhimg.com/v2-fc6c8c8c8c8c8c8c8c8c8c8c8c8c8c8c_r.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            margin-top: 30px;
+            color: #6B3E26;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .class-switch {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .class-switch button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            background-color: #A67B5B;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        .class-switch button:hover {
+            background-color: #8B6914;
+        }
+
+        .class {
+            width: 70%;
+            margin: 30px auto;
+            border: 2px solid #A67B5B;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            color: #6B3E26;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #A67B5B;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #EEDFCC;
+            color: #6B3E26;
+        }
+
+        button {
+            padding: 8px 15px;
+            margin: 2px;
+            background-color: #A67B5B;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #8B6914;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #A67B5B;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .action-buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>班级积分系统</h1>
+    <div class="class-switch">
+        <button onclick="showClass(1)">1 班</button>
+        <button onclick="showClass(2)">2 班</button>
+    </div>
+    <div class="class" id="class1">
+        <h2>1 班</h2>
+        <div class="action-buttons">
+            <button onclick="sortScores(1)">积分排行榜</button>
+            <button onclick="exportData(1)">导出积分数据</button>
+            <button onclick="clearScores(1)">一键清零</button>
+        </div>
+        <table id="class1-table">
+            <thead>
+                <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>积分</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 动态生成表格行 -->
+            </tbody>
+        </table>
+        <div class="action-buttons">
+            <input type="number" id="class1-batch-score" placeholder="输入分数">
+            <button onclick="batchAddScore(1, 1)">全班加分</button>
+            <button onclick="batchAddScore(1, -1)">全班减分</button>
+            <span>总分: <span id="class1-total-score">0</span></span>
+        </div>
+    </div>
+    <div class="class" id="class2" style="display: none;">
+        <h2>2 班</h2>
+        <div class="action-buttons">
+            <button onclick="sortScores(2)">积分排行榜</button>
+            <button onclick="exportData(2)">导出积分数据</button>
+            <button onclick="clearScores(2)">一键清零</button>
+        </div>
+        <table id="class2-table">
+            <thead>
+                <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>积分</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 动态生成表格行 -->
+            </tbody>
+        </table>
+        <div class="action-buttons">
+            <input type="number" id="class2-batch-score" placeholder="输入分数">
+            <button onclick="batchAddScore(2, 1)">全班加分</button>
+            <button onclick="batchAddScore(2, -1)">全班减分</button>
+            <span>总分: <span id="class2-total-score">0</span></span>
+        </div>
+    </div>
+
+    <script>
+        const NUM_STUDENTS = 50;
+
+        function initClass(classNum) {
+            const students = [];
+            for (let i = 1; i <= NUM_STUDENTS; i++) {
+                students.push({
+                    id: i,
+                    name: `学生${i}`,
+                    score: 0
+                });
+            }
+            localStorage.setItem(`class${classNum}`, JSON.stringify(students));
+            renderTable(classNum);
+        }
+
+        function renderTable(classNum) {
+            const table = document.getElementById(`class${classNum}-table`);
+            const tbody = table.getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+
+            const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+            let totalScore = 0;
+
+            students.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${student.id}</td>
+                    <td><input type="text" value="${student.name}" onchange="updateName(${classNum}, ${student.id}, this.value)"></td>
+                    <td id="score-${classNum}-${student.id}">${student.score}</td>
+                    <td>
+                        <button onclick="addScore(${classNum}, ${student.id}, 1)">+1</button>
+                        <button onclick="addScore(${classNum}, ${student.id}, -1)">-1</button>
+                        <input type="number" id="custom-score-${classNum}-${student.id}" placeholder="自定义分数">
+                        <button onclick="addCustomScore(${classNum}, ${student.id})">加分</button>
+                        <button onclick="deleteStudent(${classNum}, ${student.id})">删除</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+                totalScore += student.score;
+            });
+
+            document.getElementById(`class${classNum}-total-score`).textContent = totalScore;
+        }
+
+        function addScore(classNum, studentId, score) {
+            const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+            const student = students.find(s => s.id === studentId);
+            student.score += score;
+            localStorage.setItem(`class${classNum}`, JSON.stringify(students));
+            renderTable(classNum);
+        }
+
+        function addCustomScore(classNum, studentId) {
+            const input = document.getElementById(`custom-score-${classNum}-${student.id}`);
+            const score = parseInt(input.value);
+            if (!isNaN(score)) {
+                addScore(classNum, studentId, score);
+                input.value = '';
+            }
+        }
+
+        function updateName(classNum, studentId, newName) {
+            const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+            const student = students.find(s => s.id === studentId);
+            student.name = newName;
+            localStorage.setItem(`class${classNum}`, JSON.stringify(students));
+            renderTable(classNum);
+        }
+
+        function deleteStudent(classNum, studentId) {
+            const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+            const newStudents = students.filter(s => s.id !== studentId);
+            localStorage.setItem(`class${classNum}`, JSON.stringify(newStudents));
+            renderTable(classNum);
+        }
+
+        function batchAddScore(classNum, multiplier) {
+            const input = document.getElementById(`class${classNum}-batch-score`);
+            const score = parseInt(input.value);
+            if (!isNaN(score)) {
+                const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+                students.forEach(student => {
+                    student.score += score * multiplier;
+                });
+                localStorage.setItem(`class${classNum}`, JSON.stringify(students));
+                renderTable(classNum);
+                input.value = '';
+            }
+        }
+
+        function sortScores(classNum) {
+            const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+            students.sort((a, b) => b.score - a.score);
+            localStorage.setItem(`class${classNum}`, JSON.stringify(students));
+            renderTable(classNum);
+        }
+
+        function exportData(classNum) {
+            const students = JSON.parse(localStorage.getItem(`class${classNum}`));
+            let csvContent = "学号,姓名,积分\n";
+            students.forEach(student => {
+                csvContent += `${student.id},${student.name},${student.score}\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `class${classNum}_scores.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearScores(classNum) {
+            initClass(classNum);
+        }
+
+        function showClass(classNum) {
+            document.getElementById('class1').style.display = 'none';
+            document.getElementById('class2').style.display = 'none';
+            document.getElementById(`class${classNum}`).style.display = 'block';
+        }
+
+        // 初始化班级数据
+        if (!localStorage.getItem('class1')) {
+            initClass(1);
+        } else {
+            renderTable(1);
+        }
+        if (!localStorage.getItem('class2')) {
+            initClass(2);
+        } else {
+            renderTable(2);
+        }
+        // 默认显示 1 班
+        showClass(1);
+    </script>
+</body>
+
+</html>
